@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bike Price Prediction</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Bike Price Prediction</h1>
+        <form method="POST" action="/bike" enctype="multipart/form-data">
+            <label for="bike_name">Bike Name:</label>
+            <input type="text" id="bike_name" name="bike_name" required value="{{ user_input.bike_name if user_input else '' }}">
+            
+            <label for="kms_driven">Kms Driven:</label>
+            <input type="number" id="kms_driven" name="kms_driven" required value="{{ user_input.kms_driven if user_input else '' }}">
+            
+            <label for="age">Age:</label>
+            <input type="number" id="age" name="age" required value="{{ user_input.age if user_input else '' }}">
+            
+            <label for="power">Power:</label>
+            <input type="number" id="power" name="power" required value="{{ user_input.power if user_input else '' }}">
+            
+            <label for="brand">Brand:</label>
+            <input type="text" id="brand" name="brand" required value="{{ user_input.brand if user_input else '' }}">
+            
+            <!-- File Upload Section -->
+            <div class="file-upload-wrapper">
+                <label for="vehicle_image" class="file-label">Upload a clear image of your vehicle, including any damages : </label>
+                <label for="vehicle_image" class="custom-file-upload">Choose File (Supported formats: .jpg, .jpeg, .png)</label>
+                <input type="file" id="vehicle_image" name="vehicle_image" accept="image/*" style="display: none;" onchange="previewImage(event)">
+                <!-- Image Preview Area -->
+                <img id="imagePreview" src="{{ uploaded_image_url if uploaded_image_url else '' }}" alt="No image uploaded" style="display:{{ 'block' if uploaded_image_url else 'none' }}; margin-top: 15px; width: 150px;">
+            </div>
+
+            <input type="submit" value="Submit">
+        </form>
+        
+        {% if predicted_price is not none %}
+            <h2>Predicted Price: ₹{{ predicted_price }}</h2>
+            <button onclick="downloadDetails()">Download Details</button>
+        {% endif %}
+        
+    </div>
+
+    <!-- Script for handling image preview and PDF generation -->
+    <script>
+        let uploadedImage = null;
+
+        function previewImage(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function() {
+                uploadedImage = reader.result; // Base64 encoded image
+                const imgElement = document.getElementById('imagePreview');
+                imgElement.src = uploadedImage;
+                imgElement.style.display = 'block'; // Show the image preview
+            };
+            reader.readAsDataURL(file); // Read the file as a data URL (base64 image)
+        }
+
+        function downloadDetails() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            const bikeDetails = `
+Bike Name: {{ user_input.bike_name if user_input else '' }}
+Kms Driven: {{ user_input.kms_driven if user_input else '' }}
+Age: {{ user_input.age if user_input else '' }}
+Power: {{ user_input.power if user_input else '' }}
+Brand: {{ user_input.brand if user_input else '' }}
+Predicted Price: {{ predicted_price }} (rupees)
+            `;
+            doc.setFontSize(12);
+            doc.text(bikeDetails, 10, 10);
+
+            const imgElement = document.getElementById('imagePreview');
+            if (imgElement.src) {
+                doc.addImage(imgElement.src, 'JPEG', 10, 60, 150, 100); // Adjust size and position
+            } else {
+                doc.text('No image uploaded.', 10, 60);
+            }
+
+            doc.save('bike_details.pdf');
+        }
+    </script>
+</body>
+</html>
